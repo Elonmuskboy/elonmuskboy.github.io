@@ -1,0 +1,63 @@
+import speech_recognition as sr
+import pyttsx3
+from transformers import pipeline
+
+class TalkieAI:
+    def __init__(self):
+        # Initialize text-to-speech engine
+        self.tts_engine = pyttsx3.init()
+        self.tts_engine.setProperty('rate', 150)  # Words per minute
+        self.tts_engine.setProperty('volume', 1.0)  # Max volume
+
+        # Initialize speech recognizer
+        self.recognizer = sr.Recognizer()
+
+        # Load pre-trained conversational AI model
+        self.chatbot = pipeline('conversational', model='microsoft/DialoGPT-medium')
+
+    def speak(self, text):
+        """Converts text to speech."""
+        self.tts_engine.say(text)
+        self.tts_engine.runAndWait()
+
+    def listen(self):
+        """Listens to user speech and converts it to text."""
+        with sr.Microphone() as source:
+            print("Listening...")
+            try:
+                audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
+                print("Recognizing...")
+                return self.recognizer.recognize_google(audio)
+            except sr.UnknownValueError:
+                self.speak("Sorry, I didn't catch that. Could you please repeat?")
+            except sr.RequestError:
+                self.speak("I'm having trouble connecting to the speech service.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+        return None
+
+    def chat(self, user_input):
+        """Generates a response to user input."""
+        conversation = pipeline.Conversation(user_input)
+        response = self.chatbot(conversation)
+        return response.generated_responses[0]
+
+    def run(self):
+        """Main loop for interaction."""
+        self.speak("Hello! I'm Talkie AI. How can I assist you today?")
+        while True:
+            user_input = self.listen()
+            if user_input:
+                print(f"User: {user_input}")
+
+                if "exit" in user_input.lower():
+                    self.speak("Goodbye! Have a great day!")
+                    break
+
+                response = self.chat(user_input)
+                print(f"Talkie AI: {response}")
+                self.speak(response)
+
+if __name__ == "__main__":
+    ai = TalkieAI()
+    ai.run()
